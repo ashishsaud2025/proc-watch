@@ -1,0 +1,70 @@
+# proc-watch configuration
+# -------------------------
+# Every tunable knob lives here -- the code contains no magic constants
+# for these values.
+
+# Poll /proc every N seconds.
+poll_interval: 1.0
+
+# "Living off the land" rule: flag a child whose process name matches
+# `child` when its parent's process name matches `parent`.
+# Patterns use fnmatch-style wildcards (*, ?, [..]) and match against
+# the *process name* (basename of /proc/<pid>/exe).
+# These are realistic examples for a Linux test system:
+#  - nginx/apache spawning a shell
+#  - a browser or office-ish app spawning a shell
+# Adjust to what is actually realistic on *your* system -- an nginx
+# worker legitimately running a CGI script will match the first pair.
+unusual_parent_child_pairs:
+  - { parent: "nginx",   child: "bash|sh|dash|zsh" }
+  - { parent: "httpd",   child: "bash|sh|dash|zsh" }
+  - { parent: "apache2", child: "bash|sh|dash|zsh" }
+  - { parent: "firefox", child: "bash|sh|zsh" }
+  - { parent: "chrome",  child: "bash|sh|zsh" }
+  - { parent: "libreoffice*", child: "bash|sh|cmd|powershell" }
+  - { parent: "node",    child: "bash|sh" }
+
+# NOTE: the child patterns above use | alternation.  proc-watch treats a
+# pattern containing "|" as a set of alternatives to try, so you can
+# express "bash or sh or dash" compactly.  (Pure fnmatch does not
+# support alternation.)
+
+# "Unusual location" rule: flag any executable living under these
+# world-writable directories.
+world_writable_dirs:
+  - /tmp
+  - /var/tmp
+  - /dev/shm
+  - /run
+# NOTE: /home, /root, /etc etc. are *not* world-writable, so they are
+# not listed.  If you want to flag e.g. /home/*/.cache, add it here.
+
+# "Typosquatting" rule: process name that resembles (edit distance <=
+# `max_edit_distance`, but not identical to) one of these known system
+# binary names.
+known_binaries:
+  - systemd
+  - sshd
+  - bash
+  - sh
+  - nginx
+  - apache2
+  - python3
+  - node
+  - crond
+  - dbus-daemon
+  - dockerd
+  - containerd
+
+typosquat_max_edit_distance: 1
+
+# "Short-lived burst" rule: flag a new process if N+1 processes
+# (including this one) were created from the same ppid within
+# `burst_window_seconds`.
+burst_window_seconds: 5.0
+burst_threshold: 5
+
+# How many recent events to keep in memory for the live table and the
+# burst rule.  The JSONL log (`--log`) is unbounded -- it streams every
+# event to disk.
+history_maxlen: 5000

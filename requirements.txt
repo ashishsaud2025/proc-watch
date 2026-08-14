@@ -1,0 +1,6 @@
+# Runtime dependencies for proc-watch.
+# `rich` powers the live table (graceful fallback to plain text if absent).
+rich>=13.0
+# PyYAML reads the config file.  Without it proc-watch still runs, using
+# built-in defaults and a warning.
+PyYAML>=6.0
